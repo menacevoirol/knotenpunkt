@@ -6,64 +6,60 @@ class Knoten {
   final String name;
   final String beschreibung;
   final String anleitung;
-  final String kategorie;
-  final String schwierigkeit; // Schwierigkeitsgrad für die Übersicht
+  final List<String> einsatzzweck; // NEU: Liste von Einsatzgebieten
+  final String schwierigkeit;
 
   Knoten({
     required this.name,
     required this.beschreibung,
     required this.anleitung,
-    required this.kategorie,
+    required this.einsatzzweck,
     required this.schwierigkeit,
   });
 }
 
-// --- DEINE KNOTEN-DATENBANK ---
+// --- ERWEITERTE DATENBANK (ae, oe, ue in den Strings fuer die Logik) ---
 final List<Knoten> alleKnoten = [
   Knoten(
     name: 'Sibirischer Knoten',
-    kategorie: 'Zelt',
+    einsatzzweck: ['Tarp befestigen', 'Schlaufe bilden'],
     schwierigkeit: 'Einfach',
-    beschreibung: 'Der ultimative Knoten für die Ridgeline (Firstschnur).',
+    beschreibung: 'Fixiert die Firstschnur schnell am Baum.',
     anleitung:
-        '1. Seil um den Baum legen.\n2. Schlaufe um die Hand drehen.\n3. Kurzes Ende durchziehen und auf Slip setzen.',
+        '1. Seil um Baum legen.\n2. Schlaufe drehen.\n3. Ende durchziehen.',
   ),
   Knoten(
-    name: 'Rundtörn mit zwei Schlägen',
-    kategorie: 'Hängematte',
+    name: 'Kreuzbund',
+    einsatzzweck: ['Querholz befestigen', 'Konstruieren'],
     schwierigkeit: 'Mittel',
-    beschreibung:
-        'Hält bombenfest und lässt sich auch unter Last leicht lösen.',
+    beschreibung: 'Verbindet zwei Äste im rechten Winkel.',
     anleitung:
-        '1. Seil zweimal um den Baum wickeln.\n2. Zwei einfache Knoten um das stehende Seilende machen.',
+        '1. Webeleinstek am Stamm.\n2. Drei Windungen um beide Hoelzer.\n3. Drei Wuerge-Windungen.',
   ),
   Knoten(
     name: 'Schotstek',
-    kategorie: 'Verbindung',
+    einsatzzweck: ['Verbindung'],
     schwierigkeit: 'Einfach',
-    beschreibung: 'Verbindet zwei Seile (auch ungleich dick).',
-    anleitung:
-        '1. Bucht mit dem dicken Seil legen.\n2. Dünnes Seil durchführen und unter sich selbst festklemmen.',
+    beschreibung: 'Verbindet zwei Seile sicher.',
+    anleitung: '1. Bucht legen.\n2. Anderes Seil durch und rundum fuehren.',
   ),
   Knoten(
-    name: 'Achterknoten',
-    kategorie: 'Sicherung',
+    name: 'Topf-Knoten',
+    einsatzzweck: ['Kochutensil befestigen'],
     schwierigkeit: 'Einfach',
-    beschreibung: 'Der Standard-Stoppknoten gegen Ausrauschen.',
+    beschreibung: 'Haelt einen Topf sicher ueber dem Feuer.',
     anleitung:
-        '1. Lege eine Schlaufe.\n2. Einmal unten rum.\n3. Von oben durch das Auge stecken.',
+        '1. Schlaufe um den Topfgriff.\n2. Mit halben Schlaegen sichern.',
   ),
   Knoten(
     name: 'Prusik',
-    kategorie: 'Verbindung',
+    einsatzzweck: ['Tarp befestigen', 'Sicherung'],
     schwierigkeit: 'Mittel',
-    beschreibung: 'Gleit- und Klemmknoten für Tarps an der Ridgeline.',
-    anleitung:
-        '1. Reepschnur-Schlaufe um das Hauptseil legen.\n2. Dreimal durch sich selbst wickeln.',
+    beschreibung: 'Klemmknoten fuer verstellbare Tarp-Spannung.',
+    anleitung: '1. Drei Wicklungen um das Hauptseil.',
   ),
 ];
 
-// --- HAUPTSEITE ---
 class KnotenListenSeite extends StatefulWidget {
   const KnotenListenSeite({super.key});
 
@@ -72,75 +68,104 @@ class KnotenListenSeite extends StatefulWidget {
 }
 
 class _KnotenListenSeiteState extends State<KnotenListenSeite> {
-  String _ausgewaehlteKategorie = 'Alle';
+  String? _gewaehlterEinsatz; // Speichert, was der User machen will
 
-  // Zuordnung von Kategorien zu Icons (für Filter und Liste)
-  final Map<String, IconData> _kategorieIcons = {
-    'Alle': Icons.reorder,
-    'Zelt': Icons.night_shelter_sharp,
-    'Hängematte': Icons.airline_seat_flat_angled,
+  // Definition der Auswahlmoeglichkeiten (Keine Sonderzeichen in den Keys)
+  final Map<String, IconData> _einsatzOptionen = {
+    'Tarp befestigen': Icons.night_shelter,
     'Verbindung': Icons.link,
+    'Querholz befestigen': Icons.architecture,
+    'Kochutensil befestigen': Icons.soup_kitchen,
     'Sicherung': Icons.security,
   };
 
   @override
   Widget build(BuildContext context) {
-    final kategorien = _kategorieIcons.keys.toList();
-
-    final gefilterteKnoten = _ausgewaehlteKategorie == 'Alle'
-        ? alleKnoten
-        : alleKnoten
-              .where((k) => k.kategorie == _ausgewaehlteKategorie)
-              .toList();
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'KNOTEN-ÜBERSICHT',
-          style: GoogleFonts.specialElite(fontSize: 22),
+          'KNOTEN-ÜBERSICHT', // Titel darf Umlaute haben
+          style: GoogleFonts.specialElite(
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+          ),
         ),
+        actions: _gewaehlterEinsatz != null
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.close, size: 30),
+                  onPressed: () => setState(() => _gewaehlterEinsatz = null),
+                ),
+              ]
+            : null,
       ),
-      body: Column(
+      body: _gewaehlterEinsatz == null
+          ? _buildInteraktiveAuswahl()
+          : _buildErgebnisListe(),
+    );
+  }
+
+  // SCHRITT 1: Die interaktive Abfrage (Riesige Buttons fuer Lesbarkeit)
+  Widget _buildInteraktiveAuswahl() {
+    return Padding(
+      padding: const EdgeInsets.all(15),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Filter-Bar oben
-          Container(
-            height: 70,
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 15),
-              children: kategorien.map((kat) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    avatar: Icon(
-                      _kategorieIcons[kat],
-                      size: 18,
-                      color: _ausgewaehlteKategorie == kat
-                          ? Colors.white
-                          : const Color(0xFF4A6F54),
+          Text(
+            'ICH MÖCHTE...',
+            style: GoogleFonts.specialElite(
+              fontSize: 32,
+              color: const Color(0xFF4A6F54),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: GridView.count(
+              crossAxisCount:
+                  1, // Nur 1 Spalte für maximale Breite und Lesbarkeit
+              childAspectRatio: 3.5, // Flache, breite Buttons
+              mainAxisSpacing: 15,
+              children: _einsatzOptionen.entries.map((entry) {
+                return InkWell(
+                  onTap: () => setState(() => _gewaehlterEinsatz = entry.key),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(
+                        0xFF4A6F54,
+                      ), // Dunkler Hintergrund fuer weissen Text (Kontrast!)
+                      borderRadius: BorderRadius.circular(15),
                     ),
-                    label: Text(kat),
-                    selected: _ausgewaehlteKategorie == kat,
-                    selectedColor: const Color(0xFF4A6F54),
-                    onSelected: (selected) {
-                      setState(() {
-                        _ausgewaehlteKategorie = kat;
-                      });
-                    },
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        Icon(
+                          entry.value,
+                          size: 40,
+                          color: const Color(0xFFC9A66B),
+                        ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: Text(
+                            entry.key.toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.chevron_right,
+                          color: Colors.white,
+                          size: 30,
+                        ),
+                      ],
+                    ),
                   ),
                 );
               }).toList(),
-            ),
-          ),
-          // Die verbesserte Liste
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-              itemCount: gefilterteKnoten.length,
-              itemBuilder: (context, index) {
-                return _buildKnotenCard(context, gefilterteKnoten[index]);
-              },
             ),
           ),
         ],
@@ -148,75 +173,86 @@ class _KnotenListenSeiteState extends State<KnotenListenSeite> {
     );
   }
 
+  // SCHRITT 2: Die gefilterten Ergebnisse
+  Widget _buildErgebnisListe() {
+    final gefilterteKnoten = alleKnoten
+        .where((k) => k.einsatzzweck.contains(_gewaehlterEinsatz))
+        .toList();
+
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          color: const Color(0xFF141C16),
+          child: Text(
+            'LÖSUNG: ${_gewaehlterEinsatz?.toUpperCase()}',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFC9A66B),
+            ),
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.all(15),
+            itemCount: gefilterteKnoten.length,
+            itemBuilder: (context, index) =>
+                _buildKnotenCard(context, gefilterteKnoten[index]),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildKnotenCard(BuildContext context, Knoten knoten) {
     return Card(
-      elevation: 3,
-      margin: const EdgeInsets.only(bottom: 15),
+      elevation: 5,
+      margin: const EdgeInsets.only(bottom: 20),
+      color: const Color(0xFFF0E5D0), // Helle Karte
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
-        // Kategorie-Icon links in einem Kreis
-        leading: Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: const Color(0xFF4A6F54).withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            _kategorieIcons[knoten.kategorie],
-            color: const Color(0xFF4A6F54),
-            size: 26,
-          ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 15,
         ),
-        // Name: Gross und Markant
         title: Text(
-          knoten.name,
+          knoten.name.toUpperCase(),
+          // SCHRIFTDICKE: Muss ein Wert aus der w-Liste sein (w100 bis w900)
+          // FARBE MIT DURCHSICHTIGKEIT: Hier kommt die 0.8 zum Einsatz
           style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF141C16),
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: Colors.black,
           ),
         ),
-        // Kategorie & Schwierigkeit
         subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Row(
-            children: [
-              Text(
-                knoten.kategorie,
-                style: const TextStyle(
-                  color: Color(0xFF4A6F54),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Text("  •  "),
-              Text(
-                knoten.schwierigkeit,
-                style: TextStyle(color: Colors.grey[600]),
-              ),
-            ],
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(
+            'LEVEL: ${knoten.schwierigkeit.toUpperCase()}',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF4A6F54),
+            ),
           ),
         ),
         trailing: const Icon(
-          Icons.arrow_forward_ios,
-          size: 16,
-          color: Colors.grey,
+          Icons.play_circle_fill,
+          size: 50,
+          color: Color(0xFF4A6F54),
         ),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (c) => KnotenDetailSeite(knoten: knoten),
-            ),
-          );
-        },
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (c) => KnotenDetailSeite(knoten: knoten)),
+        ),
       ),
     );
   }
 }
 
-// --- DETAILSEITE ---
+// --- DETAILSEITE (AUCH OPTIMIERT) ---
 class KnotenDetailSeite extends StatelessWidget {
   final Knoten knoten;
   const KnotenDetailSeite({super.key, required this.knoten});
@@ -225,7 +261,10 @@ class KnotenDetailSeite extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(knoten.name, style: GoogleFonts.specialElite(fontSize: 20)),
+        title: Text(
+          knoten.name.toUpperCase(),
+          style: GoogleFonts.specialElite(fontSize: 22),
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
@@ -233,55 +272,37 @@ class KnotenDetailSeite extends StatelessWidget {
           Container(
             height: 250,
             decoration: BoxDecoration(
-              color: const Color(0xFFF0E5D0),
+              color: Colors.black,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFC9A66B), width: 2),
             ),
             child: const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.image_search, size: 50, color: Color(0xFF4A6F54)),
-                  SizedBox(height: 10),
-                  Text(
-                    'GIF-Animation folgt',
-                    style: TextStyle(color: Color(0xFF333333)),
-                  ),
-                ],
-              ),
+              child: Icon(Icons.play_arrow, size: 80, color: Colors.white),
             ),
           ),
           const SizedBox(height: 30),
           Text(
-            'ANWENDUNG',
-            style: GoogleFonts.specialElite(
-              fontSize: 18,
-              color: const Color(0xFF4A6F54),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            knoten.beschreibung,
-            style: const TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
-          ),
-          const SizedBox(height: 25),
-          Text(
             'ANLEITUNG',
             style: GoogleFonts.specialElite(
-              fontSize: 18,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
               color: const Color(0xFF4A6F54),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 15),
           Container(
-            padding: const EdgeInsets.all(15),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: const Color(0xFFF0E5D0).withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(10),
+              color: const Color(0xFFF0E5D0),
+              borderRadius: BorderRadius.circular(15),
             ),
             child: Text(
               knoten.anleitung,
-              style: const TextStyle(fontSize: 16, height: 1.6),
+              style: const TextStyle(
+                fontSize: 20, // RIESIGE SCHRIFT
+                height: 1.5,
+                fontWeight: FontWeight.w500,
+                color: Colors.black,
+              ),
             ),
           ),
         ],
