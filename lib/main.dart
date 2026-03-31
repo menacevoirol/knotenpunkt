@@ -67,129 +67,100 @@ class KnotenpunktApp extends StatelessWidget {
   }
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _currentIndex = 0; // Merkt sich, welcher Tab gerade offen ist
+
+  // Die verschiedenen Seiten (Views), die unten in der Leiste liegen
+  final List<Widget> _seiten = [
+    const KnotenListenSeite(), // 0: Dein Knoten-Kurs (wird direkt beim Start angezeigt)
+    const PlaceholderSeite(
+      titel: 'Bushcraft Basics',
+      icon: Icons.handyman,
+    ), // 1: Bushcraft
+    const PlaceholderSeite(
+      titel: 'Rechtslage Schweiz',
+      icon: Icons.gavel,
+    ), // 2: Schweizer Wald-Recht
+    const PlaceholderSeite(
+      titel: 'Survival Tricks',
+      icon: Icons.nature_people,
+    ), // 3: Survival
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      // Die generelle AppBar oben fliegt raus, da jede Unterseite nun ihre eigene
+      // AppBar mit passendem Titel mitbringt.
+
+      // Der Body wechselt den Inhalt, je nachdem worauf du unten tippst
+      body: _seiten[_currentIndex],
+
+      // Die rustikale, untere Navigationsleiste
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentIndex,
+        onDestinationSelected: (int index) {
+          setState(() {
+            _currentIndex = index; // Wechselt den aktiven Tab
+          });
+        },
+        backgroundColor: const Color(0xFF141C16), // Sehr dunkles AppBar-Grün
+        indicatorColor: const Color(
+          0xFF4A6F54,
+        ), // Waldgrüne Hervorhebung für den aktiven Tab
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.gesture), label: 'Knoten'),
+          NavigationDestination(icon: Icon(Icons.handyman), label: 'Bushcraft'),
+          NavigationDestination(icon: Icon(Icons.gavel), label: 'Recht'),
+          NavigationDestination(
+            icon: Icon(Icons.nature_people),
+            label: 'Survival',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Eine kleine Hilfsklasse für die noch nicht fertigen Seiten,
+// damit die App beim Klicken nicht abstürzt.
+class PlaceholderSeite extends StatelessWidget {
+  final String titel;
+  final IconData icon;
+
+  const PlaceholderSeite({super.key, required this.titel, required this.icon});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'KNOTENPUNKT',
+          titel.toUpperCase(),
           style: GoogleFonts.specialElite(
-            fontSize: 24, // Grösser und rustikaler
+            fontSize: 22,
             color: const Color(0xFFE0E0E0),
           ),
         ),
       ),
-      body: Stack(
-        children: [
-          // 🌲 HINTERGRUNDBILD (Siehe Schritt 3!)
-          // Positioned.fill(
-          //   child: Image.asset(
-          //     'assets/images/waldboden.jpg', // Der Pfad zu deinem Bild
-          //     fit: BoxFit.cover,
-          //     opacity: const AlwaysStoppedAnimation(0.2), // Ganz dezent im Hintergrund
-          //   ),
-          // ),
-
-          // Der eigentliche Inhalt
-          Container(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-              children: [
-                Text(
-                  'Willkommen im Wald!',
-                  style: Theme.of(context).textTheme.headlineLarge,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 35),
-                _buildMenuCard(
-                  context,
-                  Icons.gesture,
-                  '🪢 Knoten-Kurs',
-                  'Meistere die wichtigsten Schlingen',
-                ),
-                _buildMenuCard(
-                  context,
-                  Icons.handyman,
-                  '🪓 Bushcraft Basics',
-                  'Schnitzen, Feuer & Lagerbau',
-                ),
-                _buildMenuCard(
-                  context,
-                  Icons.gavel,
-                  '⚖️ Rechtslage Wald',
-                  'Wo darf ich zelten & feuern?',
-                ),
-                _buildMenuCard(
-                  context,
-                  Icons.nature_people,
-                  '🌱 Survival Tricks',
-                  'Tipps & Tricks für draussen',
-                ),
-              ],
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 80, color: const Color(0xFF4A6F54)),
+            const SizedBox(height: 20),
+            Text(
+              '$titel folgt in Kürze!',
+              style: Theme.of(context).textTheme.titleMedium,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMenuCard(
-    BuildContext context,
-    IconData icon,
-    String title,
-    String sub,
-  ) {
-    return Card(
-      margin: const EdgeInsets.only(
-        bottom: 25,
-      ), // Mehr Abstand zwischen den Karten
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 15,
+          ],
         ),
-        leading: Icon(
-          icon,
-          color: const Color(0xFF4A6F54),
-          size: 35,
-        ), // Waldgrüne Icons auf Pergament
-        title: Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: const Color(0xFF333333), // Dunklerer Text auf Pergament
-          ),
-        ),
-        subtitle: Text(
-          sub,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: const Color(0xFF666666), // Dunklerer Text auf Pergament
-          ),
-        ),
-        trailing: const Icon(
-          Icons.arrow_forward_ios,
-          color: Color(0xFF4A6F54),
-          size: 20,
-        ),
-        onTap: () {
-          if (title.contains('Knoten')) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const KnotenListenSeite(),
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Der Bereich $title kommt bald!'),
-                backgroundColor: const Color(0xFF243027),
-              ),
-            );
-          }
-        },
       ),
     );
   }
