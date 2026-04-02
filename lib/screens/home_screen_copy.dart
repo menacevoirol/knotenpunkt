@@ -5,7 +5,7 @@ import 'bushcraft_screen.dart';
 import 'survival_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  final bool isChildMode; // Hier kommt die Info an
+  final bool isChildMode; // NEU
   const HomeScreen({super.key, required this.isChildMode});
 
   @override
@@ -17,7 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // WICHTIG: Die Liste muss HIER definiert werden, damit wir widget.isChildMode prüfen können
+    // Hier entscheiden wir, welche Tabs angezeigt werden
     final seiten = [
       const KnotenListenSeite(),
       const BushcraftSeite(),
@@ -25,7 +25,6 @@ class _HomeScreenState extends State<HomeScreen> {
       const SurvivalSeite(),
     ];
 
-    // Auch die Navigations-Icons müssen wir filtern
     final destinations = [
       const NavigationDestination(icon: Icon(Icons.gesture), label: 'Knoten'),
       const NavigationDestination(
@@ -45,9 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (int index) {
-          setState(() {
-            _currentIndex = index;
-          });
+          setState(() => _currentIndex = index);
         },
         backgroundColor: const Color(0xFF141C16),
         indicatorColor: const Color(0xFF4A6F54),

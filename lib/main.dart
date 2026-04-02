@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'screens/home_screen.dart'; // Importiert deinen neuen Home-Screen
+import 'package:waldabenteuer/screens/start_auswahl_seite.dart';
 
 void main() {
   runApp(const KnotenpunktApp());
@@ -13,7 +13,7 @@ class KnotenpunktApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Knotenpunkt',
+      title: 'Waldabenteuer',
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFF1B261E),
@@ -57,7 +57,7 @@ class KnotenpunktApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const HomeScreen(),
+      home: const StartAuswahlSeite(),
     );
   }
 }

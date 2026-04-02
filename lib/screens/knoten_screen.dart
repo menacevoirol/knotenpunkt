@@ -4,13 +4,15 @@ import 'package:google_fonts/google_fonts.dart';
 // --- DATEN-MODELL ---
 class Knoten {
   final String name;
+  final String anwendung;
   final String beschreibung;
   final String anleitung;
-  final List<String> einsatzzweck; // NEU: Liste von Einsatzgebieten
+  final List<String> einsatzzweck;
   final String schwierigkeit;
 
   Knoten({
     required this.name,
+    required this.anwendung,
     required this.beschreibung,
     required this.anleitung,
     required this.einsatzzweck,
@@ -18,11 +20,12 @@ class Knoten {
   });
 }
 
-// --- ERWEITERTE DATENBANK (ae, oe, ue in den Strings fuer die Logik) ---
+// --- ERWEITERTE DATENBANK  ---
 final List<Knoten> alleKnoten = [
   Knoten(
     name: 'Sibirischer Knoten',
-    einsatzzweck: ['Tarp befestigen', 'Schlaufe bilden'],
+    anwendung: 'FIRSTSCHNUR FIXIEREN',
+    einsatzzweck: ['Schlafplatz'],
     schwierigkeit: 'Einfach',
     beschreibung: 'Fixiert die Firstschnur schnell am Baum.',
     anleitung:
@@ -30,7 +33,8 @@ final List<Knoten> alleKnoten = [
   ),
   Knoten(
     name: 'Kreuzbund',
-    einsatzzweck: ['Querholz befestigen', 'Konstruieren'],
+    anwendung: 'GERÜST / DREIBEIN BAUEN',
+    einsatzzweck: ['Lagerbau', 'Kochstelle'],
     schwierigkeit: 'Mittel',
     beschreibung: 'Verbindet zwei Äste im rechten Winkel.',
     anleitung:
@@ -38,14 +42,16 @@ final List<Knoten> alleKnoten = [
   ),
   Knoten(
     name: 'Schotstek',
-    einsatzzweck: ['Verbindung'],
+    anwendung: 'SEILE VERLÄNGERN',
+    einsatzzweck: ['Verbindungen'],
     schwierigkeit: 'Einfach',
     beschreibung: 'Verbindet zwei Seile sicher.',
     anleitung: '1. Bucht legen.\n2. Anderes Seil durch und rundum fuehren.',
   ),
   Knoten(
     name: 'Topf-Knoten',
-    einsatzzweck: ['Kochutensil befestigen'],
+    anwendung: 'KOCHTOPF AUFHÄNGEN',
+    einsatzzweck: ['Kochstelle'],
     schwierigkeit: 'Einfach',
     beschreibung: 'Haelt einen Topf sicher ueber dem Feuer.',
     anleitung:
@@ -53,10 +59,28 @@ final List<Knoten> alleKnoten = [
   ),
   Knoten(
     name: 'Prusik',
-    einsatzzweck: ['Tarp befestigen', 'Sicherung'],
+    anwendung: 'TARP-SPANNUNG JUSTIEREN',
+    einsatzzweck: ['Schlafplatz', 'Notfall'],
     schwierigkeit: 'Mittel',
     beschreibung: 'Klemmknoten fuer verstellbare Tarp-Spannung.',
     anleitung: '1. Drei Wicklungen um das Hauptseil.',
+  ),
+
+  Knoten(
+    name: 'Kreuzbund',
+    anwendung: 'QUERHOLZ FIXIEREN',
+    einsatzzweck: [
+      'Lagerbau',
+      'Verbindungen',
+    ], // Erscheint nun in beiden Rubriken
+    schwierigkeit: 'Mittel',
+    beschreibung:
+        'Verbindet zwei Äste im rechten Winkel. Unverzichtbar für Tische, Bänke oder Gestelle.',
+    anleitung:
+        '1. Starte mit einem Webeleinstek am senkrechten Stamm.\n'
+        '2. Führe das Seil abwechselnd über und unter die Hölzer (3-4 Runden).\n'
+        '3. Mache 2-3 Würgeschläge (Frapping) zwischen den Hölzern, um alles extrem zu spannen.\n'
+        '4. Schliesse mit einem Webeleinstek am Querholz ab.',
   ),
 ];
 
@@ -67,16 +91,34 @@ class KnotenListenSeite extends StatefulWidget {
   State<KnotenListenSeite> createState() => _KnotenListenSeiteState();
 }
 
-class _KnotenListenSeiteState extends State<KnotenListenSeite> {
-  String? _gewaehlterEinsatz; // Speichert, was der User machen will
+class _KnotenListenSeiteState extends State<KnotenListenSeite>
+    with SingleTickerProviderStateMixin {
+  String? _gewaehlterEinsatz;
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    // Die Animation laeuft 10 Sekunden lang hin und her (sehr langsam!)
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   // Definition der Auswahlmoeglichkeiten (Keine Sonderzeichen in den Keys)
   final Map<String, IconData> _einsatzOptionen = {
-    'Tarp befestigen': Icons.night_shelter,
-    'Verbindung': Icons.link,
-    'Querholz befestigen': Icons.architecture,
-    'Kochutensil befestigen': Icons.soup_kitchen,
-    'Sicherung': Icons.security,
+    'Schlafplatz': Icons.bed, // Tarp & Hängematte
+    'Kochstelle': Icons.local_fire_department, // Töpfe & Dreibein
+    'Lagerbau': Icons.handyman, // Querhölzer & Möbel
+    'Verbindungen': Icons.link, // Seile verknüpfen
+    'Notfall': Icons.warning_amber, // Sicherung
   };
 
   @override
@@ -99,9 +141,27 @@ class _KnotenListenSeiteState extends State<KnotenListenSeite> {
               ]
             : null,
       ),
-      body: _gewaehlterEinsatz == null
-          ? _buildInteraktiveAuswahl()
-          : _buildErgebnisListe(),
+      body: Stack(
+        children: [
+          // Hintergrund-Animation
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                return CustomPaint(
+                  painter: AmbientBackgroundPainter(_controller.value),
+                );
+              },
+            ),
+          ),
+          // Dein eigentlicher Content
+          SafeArea(
+            child: _gewaehlterEinsatz == null
+                ? _buildInteraktiveAuswahl()
+                : _buildErgebnisListe(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -217,15 +277,31 @@ class _KnotenListenSeiteState extends State<KnotenListenSeite> {
           horizontal: 20,
           vertical: 15,
         ),
-        title: Text(
-          knoten.name.toUpperCase(),
-          // SCHRIFTDICKE: Muss ein Wert aus der w-Liste sein (w100 bis w900)
-          // FARBE MIT DURCHSICHTIGKEIT: Hier kommt die 0.8 zum Einsatz
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w700,
-            color: Colors.black,
-          ),
+        // Der Titel wird nun eine Column, um das Aktions-Label (Anwendung) anzuzeigen
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // DAS AKTIONS-LABEL (z.B. "FIRSTSCHNUR FIXIEREN")
+            Text(
+              knoten.anwendung.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF4A6F54), // Waldgrün
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 4),
+            // DER NAME DES KNOTENS
+            Text(
+              knoten.name.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: Colors.black,
+              ),
+            ),
+          ],
         ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 8),
@@ -252,7 +328,7 @@ class _KnotenListenSeiteState extends State<KnotenListenSeite> {
   }
 }
 
-// --- DETAILSEITE (AUCH OPTIMIERT) ---
+// --- DETAILSEITE ---
 class KnotenDetailSeite extends StatelessWidget {
   final Knoten knoten;
   const KnotenDetailSeite({super.key, required this.knoten});
@@ -298,7 +374,7 @@ class KnotenDetailSeite extends StatelessWidget {
             child: Text(
               knoten.anleitung,
               style: const TextStyle(
-                fontSize: 20, // RIESIGE SCHRIFT
+                fontSize: 20,
                 height: 1.5,
                 fontWeight: FontWeight.w500,
                 color: Colors.black,
@@ -309,4 +385,40 @@ class KnotenDetailSeite extends StatelessWidget {
       ),
     );
   }
+}
+
+class AmbientBackgroundPainter extends CustomPainter {
+  final double animationValue;
+  AmbientBackgroundPainter(this.animationValue);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFC9A66B)
+          .withValues(alpha: 0.1) // Goldton, sehr blass
+      ..maskFilter = const MaskFilter.blur(
+        BlurStyle.normal,
+        30,
+      ); // Weiche Ränder
+
+    // Wir zeichnen 3 grosse, weiche Lichtpunkte, die "schweben"
+    canvas.drawCircle(
+      Offset(size.width * 0.2, size.height * (0.3 + 0.1 * animationValue)),
+      100,
+      paint,
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.8, size.height * (0.6 - 0.1 * animationValue)),
+      150,
+      paint,
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.5, size.height * (0.8 + 0.05 * animationValue)),
+      120,
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

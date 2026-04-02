@@ -1,5 +1,4 @@
-name: knotenpunkt_app
-description: "A new Flutter project."
+name: waldabenteuer
 publish_to: "none"
 
 version: 1.0.0+1
@@ -30,6 +29,6 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/icon.jpg"
+  image_path: "assets/images/app_icon.jpg"
   adaptive_icon_background: "#1B261E"
-  adaptive_icon_foreground: "assets/images/icon.jpg"
+  adaptive_icon_foreground: "./assets/images/app_icon.jpg"
